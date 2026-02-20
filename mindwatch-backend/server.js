@@ -41,6 +41,20 @@ app.use('/api/journal', journalRoutes);
 app.use('/api/mindfulness', mindfulnessRoutes);
 app.use('/api/analysis', analysisRoutes);
 
+// Health route
+app.get('/api/health', async (req, res) => {
+    res.json({
+        success: true,
+        message: 'Backend is active',
+        database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+        env: {
+            hasJwtSecret: !!process.env.JWT_SECRET,
+            hasMongoUri: !!process.env.MONGODB_URI,
+            hasGroqKey: !!process.env.GROQ_API_KEY
+        }
+    });
+});
+
 // Root route
 app.get('/', (req, res) => {
     res.json({ message: 'MindWatch AI Backend is running!' });
