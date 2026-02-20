@@ -78,50 +78,28 @@ const getTherapyResponse = async (messages, userMessage) => {
 const analyzeEmotion = async (text, history = []) => {
     try {
         const chatContext = history.slice(-6).map(m => `${m.role === 'user' ? 'User' : 'AI'}: ${m.content}`).join('\n');
-        const prompt = `Perform a high-precision neuro-psychological analysis on the latest interaction, leveraging the provided context.
+        const contextBlock = chatContext ? `\nConversation context (recent exchanges):\n${chatContext}\n` : '';
 
-Context (recent exchanges):
-${chatContext}
-
-Latest Spoken Text: "${text}"
-
-Deliverable Goals:
-1. **Thematic Mapping**: Identify recurring psychological themes (e.g., abandonment, perfectionism, hyper-vigilance).
-2. **Nervous System State**: Hypothesize if the user is in Ventral Vagal (safety), Sympathetic (anxiety/anger), or Dorsal Vagal (shutdown).
-3. **Root Hypothesis**: Suggest a potential "Why" behind the current emotion based on the narrative.
-
-Return exactly this JSON structure (no markdown):
-{
-  "dominantEmotion": "one of: happy|sad|anxious|calm|angry|excited|stressed|neutral|overwhelmed|hopeful|frustrated|fearful|relief|shame|grief",
-  "intensity": <number 0-100>,
-  "sentimentScore": <number from -1.0 to 1.0>,
-  "stressLevel": <number from 0 to 10>,
-  "emotions": ["nuanced", "sub-emotions"],
-  "insights": "A profound therapist-grade reflection that connects current feelings to a broader pattern or socratic bridge. Avoid surface-level empathy.",
-  "suggestions": [
-    "Neuro-somatic exercise (e.g., Vagus nerve stimulation tip)",
-    "Cognitive reframe or Socratic journal prompt",
-    "Compassionate values-based action"
-  ],
-  "thematicAnalysis": "1-sentence summary of the underlying psychological theme detected.",
-  "growthProgress": "Movement description (e.g., 'From self-judgment toward curiosity')",
-  "crisisSignals": <true or false>
-}  `;
+        const prompt = `You are performing a clinical-grade emotional assessment. Analyze the user's words for underlying psychological patterns, not just surface emotion.\n${contextBlock}\nUser's current statement: "${text}"\n\nINSTRUCTIONS:\n- Detect the CORE emotion beneath the surface words (e.g., "I'm fine" may mask anxiety)\n- Identify the nervous system state: Ventral Vagal (safe/social), Sympathetic (fight/flight), or Dorsal Vagal (freeze/shutdown)\n- Connect the emotion to a likely psychological theme (e.g., perfectionism, abandonment fear, emotional suppression)\n- Write "insights" as a warm, wise therapist would — 2-3 sentences that make the user feel deeply understood\n- Provide 3 highly specific, actionable suggestions (not generic advice)\n\nRESPOND WITH ONLY RAW JSON — no markdown, no code fences, no explanation before or after.\n\n{\n  "dominantEmotion": "happy|sad|anxious|calm|angry|excited|stressed|neutral|overwhelmed|hopeful",\n  "intensity": 0-100,\n  "sentimentScore": -1.0 to 1.0,\n  "stressLevel": 0-10,\n  "emotions": ["primary", "secondary", "tertiary"],\n  "insights": "Therapist-grade insight connecting feelings to deeper patterns. Be specific to what they said.",\n  "suggestions": [\n    "Specific somatic/breathing technique with WHY it works neurologically",\n    "Targeted cognitive reframe or journaling prompt tied to their situation",\n    "One concrete values-based action they can take in the next hour"\n  ],\n  "thematicAnalysis": "One-sentence psychological theme summary",\n  "growthProgress": "Describes emotional trajectory, e.g. 'Moving from avoidance toward curious self-exploration'",\n  "crisisSignals": false\n}`;
 
         const response = await groqCall({
             model: 'llama-3.3-70b-versatile',
             messages: [
-                { role: 'system', content: 'You are an expert clinical psychologist and emotion analyst. You provide evidence-based, logical, and structured insights.' },
+                { role: 'system', content: 'You are a distinguished clinical psychologist specializing in emotion analysis. You ONLY respond with raw JSON objects — never markdown, never code fences, never explanatory text. Your insights are profound, specific to the user\'s words, and grounded in CBT, ACT, IFS, and Polyvagal Theory.' },
                 { role: 'user', content: prompt }
             ],
-            temperature: 0.4,
-            max_tokens: 600
+            temperature: 0.45,
+            max_tokens: 700
         });
 
         const content = response.choices[0]?.message?.content || '{}';
-        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        // Strip markdown code fences if the model wraps anyway
+        const cleaned = content.replace(/```json?\s*/gi, '').replace(/```\s*/g, '').trim();
+        const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
-            return JSON.parse(jsonMatch[0]);
+            const parsed = JSON.parse(jsonMatch[0]);
+            // Validate critical fields
+            if (parsed.insights && parsed.dominantEmotion) return parsed;
         }
         return getDefaultEmotionAnalysis();
     } catch (err) {
@@ -137,45 +115,38 @@ Return exactly this JSON structure (no markdown):
  */
 const generateStressSuggestions = async (context) => {
     try {
-        const prompt = `Based on this mental health context, provide a comprehensive set of evidence-based wellness strategies using CBT, DBT, ACT, and Polyvagal frameworks. 
-        
-        Ensure the advice is DYNAMIC, BOLD, and highly specific. Each tip must include a "Why this works" (Neuro-Logic).
+        const emotion = context.emotion || 'neutral';
+        const score = context.stressLevel || context.score || 5;
+        const triggers = context.triggers?.join(', ') || 'none specified';
+        const notes = context.notes || 'No additional notes';
 
-Current context:
-- Primary Emotion: ${context.emotion || 'neutral'}
-- Stress/Score: ${context.stressLevel || context.score || 5}/10
-- Triggers: ${context.triggers?.join(', ') || 'none specified'}
-- User Notes: "${context.notes || 'No notes provided'}"
+        // Dynamic severity framing — changes the prompt tone based on how stressed the user is
+        let urgencyFrame = 'general maintenance';
+        if (score <= 3) urgencyFrame = 'The user is in significant distress. Prioritize IMMEDIATE nervous system regulation and safety.';
+        else if (score <= 5) urgencyFrame = 'The user is struggling. Balance immediate relief with longer-term coping strategies.';
+        else if (score <= 7) urgencyFrame = 'The user is managing but could benefit from optimization and preventive strategies.';
+        else urgencyFrame = 'The user is doing well. Focus on growth, deepening self-awareness, and maintaining momentum.';
 
-Provide 2 high-impact suggestions for each category:
-1. "immediate" (Neuro-Somatic): Biological hacks to reset the nervous system.
-2. "mindfulness" (Cognitive/ACT): Shifts in perception and presence.
-3. "lifestyle" (Building Resilience): Long-term system support.
-4. "mental" (Root Work): Challenging the origin of the distress.
-
-Return exactly this JSON structure (no markdown):
-{
-  "immediate": ["Bio-hack with logic: 'Try [X] because it stimulates [Y]'", "Somatic task: '[X] signals safety to your [Y]'"],
-  "mindfulness": ["Creative ACT prompt", "DBT Distress Tolerance skill"],
-  "lifestyle": ["Habit-shift with reasoning", "Environment optimization"],
-  "mental": ["CBT reframe against [Trigger]", "Socratic hypothesis for [Emotion]"],
-  "overallAdvice": "A deeply empathetic psychological summary that identifies the core theme of the user's current state and offers a vision of growth."
-} `;
+        const prompt = `You are a clinical wellness strategist creating a PERSONALIZED action plan.\n\nPATIENT CONTEXT:\n- Feeling: ${emotion} (Mood score: ${score}/10 where 10 is best)\n- Triggers: ${triggers}\n- Their words: "${notes}"\n\nCLINICAL ASSESSMENT: ${urgencyFrame}\n\nRULES FOR YOUR RESPONSE:\n1. Every suggestion MUST reference something specific from the patient's context (their emotion, triggers, or words)\n2. Each tip MUST include a brief "because..." explanation of the neuroscience/psychology behind it\n3. Never use generic advice like "take deep breaths" or "go for a walk" without making it specific to their situation\n4. Write as a warm expert, not a textbook\n\nRESPOND WITH ONLY RAW JSON — no markdown, no code fences, no explanation.\n\n{\n  "immediate": [\n    "[Specific somatic technique] because [neurological reason tied to their emotion/trigger]",\n    "[Body-based regulation technique] — this works because [science relevant to their state]"\n  ],\n  "mindfulness": [\n    "[ACT/mindfulness exercise personalized to their trigger]",\n    "[DBT distress tolerance skill adapted to their situation]"\n  ],\n  "lifestyle": [\n    "[Concrete habit change addressing their specific trigger] because [reasoning]",\n    "[Environment or routine adjustment] to support [their specific need]"\n  ],\n  "mental": [\n    "[CBT thought challenge targeting the specific cognitive distortion in their words/emotion]",\n    "[Socratic question or journaling prompt that directly addresses their stated trigger]"\n  ],\n  "overallAdvice": "A 2-3 sentence empathetic summary that names the core psychological pattern you see, validates their experience, and paints a hopeful picture of growth. Reference their specific words or triggers."\n}`;
 
         const response = await groqCall({
             model: 'llama-3.3-70b-versatile',
             messages: [
-                { role: 'system', content: 'You are a master clinical wellness strategist. You provide evidence-based, deeply insightful, and psychologically sound stress management advice that feels personalized and warm, never robotic.' },
+                { role: 'system', content: 'You are an elite clinical wellness strategist with expertise in CBT, DBT, ACT, Polyvagal Theory, and somatic therapy. You ONLY respond with raw JSON objects — never markdown, never code fences. Every recommendation you make is hyper-personalized to the patient\'s specific context. You never give generic advice.' },
                 { role: 'user', content: prompt }
             ],
-            temperature: 0.5,
-            max_tokens: 800
+            temperature: 0.55,
+            max_tokens: 900
         });
 
         const content = response.choices[0]?.message?.content || '{}';
-        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        // Strip markdown code fences if the model wraps anyway
+        const cleaned = content.replace(/```json?\s*/gi, '').replace(/```\s*/g, '').trim();
+        const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
-            return JSON.parse(jsonMatch[0]);
+            const parsed = JSON.parse(jsonMatch[0]);
+            // Validate the response has the expected structure
+            if (parsed.immediate && parsed.overallAdvice) return parsed;
         }
         return getDefaultCategorizedSuggestions();
     } catch (err) {

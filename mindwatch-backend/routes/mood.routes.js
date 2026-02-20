@@ -9,9 +9,30 @@ router.post('/', protect, async (req, res) => {
     try {
         const { score, emotion, notes, triggers, energyLevel, sleepHours } = req.body;
 
-        // Generate AI suggestions
-        const suggestions = await generateStressSuggestions({ score, emotion, triggers, notes });
-        const emotionData = notes ? await analyzeEmotion(notes) : null;
+        // Generate AI suggestions — wrapped so AI failure doesn't block mood saving
+        let suggestions = {};
+        let aiAnalysis = '';
+        try {
+            suggestions = await generateStressSuggestions({ score, emotion, triggers, notes });
+        } catch (aiErr) {
+            console.warn('AI suggestions failed (non-blocking):', aiErr.message);
+            suggestions = {
+                immediate: ["Take a few deep breaths to center yourself"],
+                mindfulness: ["Observe your thoughts without judgment for 2 minutes"],
+                lifestyle: ["Go for a short walk or stretch"],
+                mental: ["Write down one thing you're grateful for today"],
+                overallAdvice: "AI suggestions are temporarily unavailable, but your mood has been logged. Keep tracking!"
+            };
+        }
+        try {
+            if (notes) {
+                const emotionData = await analyzeEmotion(notes);
+                aiAnalysis = emotionData?.insights || '';
+            }
+        } catch (aiErr) {
+            console.warn('AI emotion analysis failed (non-blocking):', aiErr.message);
+            aiAnalysis = 'AI analysis is temporarily unavailable. Your mood has been recorded.';
+        }
 
         const moodLog = await MoodLog.create({
             userId: req.user._id,
@@ -20,7 +41,7 @@ router.post('/', protect, async (req, res) => {
             notes: notes || '',
             triggers: triggers || [],
             aiSuggestions: suggestions,
-            aiAnalysis: emotionData?.insights || '',
+            aiAnalysis,
             energyLevel: energyLevel || 3,
             sleepHours: sleepHours || null
         });
