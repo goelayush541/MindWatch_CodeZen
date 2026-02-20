@@ -4,7 +4,8 @@ import { useAuth } from '../context/AuthContext';
 import {
     RiDashboardLine, RiChatAiLine, RiEmotionHappyLine,
     RiBookOpenLine, RiLeafLine, RiHistoryLine, RiMicLine,
-    RiLogoutBoxLine, RiMentalHealthLine, RiMenu3Line, RiCloseLine
+    RiLogoutBoxLine, RiMentalHealthLine, RiMenu3Line, RiCloseLine,
+    RiCameraLine
 } from 'react-icons/ri';
 import './Sidebar.css';
 
@@ -16,6 +17,7 @@ const navItems = [
     { path: '/mindfulness', icon: RiLeafLine, label: 'Mindfulness' },
     { path: '/history', icon: RiHistoryLine, label: 'History' },
     // { path: '/voice-therapy', icon: RiMicLine, label: 'Voice Therapy' },
+    { path: '/face-analysis', icon: RiCameraLine, label: 'Face Analysis' },
 ];
 
 const Sidebar = () => {

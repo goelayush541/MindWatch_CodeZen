@@ -12,6 +12,7 @@ const moodRoutes = require('./routes/mood.routes');
 const journalRoutes = require('./routes/journal.routes');
 const mindfulnessRoutes = require('./routes/mindfulness.routes');
 const analysisRoutes = require('./routes/analysis.routes');
+const faceRoutes = require('./routes/face.routes');
 
 const app = express();
 
@@ -55,6 +56,7 @@ app.use('/api/mood', moodRoutes);
 app.use('/api/journal', journalRoutes);
 app.use('/api/mindfulness', mindfulnessRoutes);
 app.use('/api/analysis', analysisRoutes);
+app.use('/api/face', faceRoutes);
 
 // Root route
 app.get('/', (req, res) => {

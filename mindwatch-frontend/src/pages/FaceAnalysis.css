@@ -1,0 +1,412 @@
+.face-analysis-page {
+    max-width: 1200px;
+}
+
+/* ========== LOADING ========== */
+.face-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 60px 32px;
+    text-align: center;
+}
+
+.face-loading p {
+    font-size: 16px;
+    font-weight: 600;
+    color: #f0f4ff;
+}
+
+.face-loading-sub {
+    font-size: 12px;
+    color: #6b7280;
+}
+
+.spin-icon {
+    animation: spinIcon 1s linear infinite;
+}
+
+@keyframes spinIcon {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ========== LAYOUT ========== */
+.face-layout {
+    display: grid;
+    grid-template-columns: 1fr 400px;
+    gap: 20px;
+    align-items: start;
+}
+
+@media (max-width: 1000px) {
+    .face-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ========== CAMERA SECTION ========== */
+.face-camera-container {
+    padding: 0;
+    overflow: hidden;
+}
+
+.face-video-wrapper {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 4/3;
+    background: #0a0a0a;
+    overflow: hidden;
+}
+
+.face-video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transform: scaleX(-1);
+}
+
+.face-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    transform: scaleX(-1);
+    pointer-events: none;
+}
+
+.face-video-placeholder {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: #374151;
+    background: rgba(0, 0, 0, 0.6);
+}
+
+.face-video-placeholder p {
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.face-no-detection {
+    position: absolute;
+    bottom: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(245, 158, 11, 0.15);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    color: #f59e0b;
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+    animation: pulseFade 2s ease-in-out infinite;
+}
+
+@keyframes pulseFade {
+
+    0%,
+    100% {
+        opacity: 0.7;
+    }
+
+    50% {
+        opacity: 1;
+    }
+}
+
+.face-status-badge {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.face-status-badge.detected {
+    background: rgba(16, 185, 129, 0.15);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    color: #10b981;
+}
+
+/* ========== CONTROLS ========== */
+.face-controls {
+    display: flex;
+    gap: 8px;
+    padding: 16px 20px;
+}
+
+.face-start-btn {
+    flex: 1;
+    justify-content: center;
+}
+
+.face-analyze-btn {
+    flex: 1;
+    justify-content: center;
+}
+
+.face-session-info {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 10px 20px 14px;
+    font-size: 11px;
+    color: #6b7280;
+    border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.face-privacy-note {
+    margin-left: auto;
+    color: #4b5563;
+    font-size: 10px;
+}
+
+/* ========== DATA SECTION ========== */
+.face-data-section {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.face-section-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* ========== STRESS METER ========== */
+.face-stress-card {
+    padding: 24px;
+    text-align: center;
+}
+
+.face-stress-meter {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.face-stress-ring {
+    width: 140px;
+    height: 140px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.5s ease;
+}
+
+.face-stress-ring-inner {
+    width: 112px;
+    height: 112px;
+    border-radius: 50%;
+    background: rgba(13, 17, 23, 0.95);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+}
+
+.face-stress-value {
+    font-family: 'Outfit', sans-serif;
+    font-size: 38px;
+    font-weight: 900;
+    color: #f0f4ff;
+    line-height: 1;
+}
+
+.face-stress-unit {
+    font-size: 11px;
+    color: #6b7280;
+    font-weight: 600;
+}
+
+.face-stress-label {
+    font-size: 14px;
+    font-weight: 700;
+    transition: color 0.3s ease;
+}
+
+/* Dominant Emotion */
+.face-dominant {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 10px;
+}
+
+.face-dominant-emoji {
+    font-size: 32px;
+}
+
+.face-dominant-label {
+    font-size: 10px;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.face-dominant-name {
+    font-size: 16px;
+    font-weight: 800;
+    transition: color 0.3s;
+}
+
+/* ========== EXPRESSION BARS ========== */
+.face-expressions-card {
+    padding: 24px;
+}
+
+.face-expression-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.face-expr-row {
+    display: grid;
+    grid-template-columns: 90px 1fr 40px;
+    align-items: center;
+    gap: 10px;
+}
+
+.face-expr-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #cbd5e1;
+}
+
+.face-expr-emoji {
+    font-size: 15px;
+}
+
+.face-expr-bar-track {
+    height: 8px;
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.face-expr-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.3s ease;
+    min-width: 0;
+}
+
+.face-expr-value {
+    font-family: 'Outfit', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    text-align: right;
+    transition: color 0.3s;
+}
+
+/* ========== AI ANALYSIS ========== */
+.face-ai-card {
+    padding: 24px;
+}
+
+.face-ai-assessment {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.08), rgba(6, 182, 212, 0.06));
+    border: 1px solid rgba(139, 92, 246, 0.15);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 16px;
+}
+
+.face-ai-assessment p {
+    font-size: 14px;
+    color: #e2e8f0;
+    line-height: 1.7;
+    margin: 0;
+}
+
+.face-ai-section {
+    margin-bottom: 14px;
+}
+
+.face-ai-section h4 {
+    font-size: 12px;
+    font-weight: 700;
+    color: #8b5cf6;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 6px;
+}
+
+.face-ai-section p {
+    font-size: 13px;
+    color: #cbd5e1;
+    line-height: 1.6;
+    margin: 0;
+}
+
+.face-ai-recommendations {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.face-ai-recommendations li {
+    font-size: 13px;
+    color: #cbd5e1;
+    line-height: 1.5;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 8px;
+    border-left: 3px solid #8b5cf6;
+}
+
+.face-ai-confidence {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    background: rgba(16, 185, 129, 0.06);
+    border-radius: 6px;
+    font-size: 11px;
+    color: #6b7280;
+    margin-top: 8px;
+}

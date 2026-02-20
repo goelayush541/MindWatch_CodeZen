@@ -194,6 +194,78 @@ Be warm, encouraging, and specific.`;
     }
 };
 
+/**
+ * Analyze facial expression data with anti-hallucination safeguards
+ * @param {Object} data - Expression probabilities, stress score, session history
+ * @returns {Promise<Object>} Structured psychological analysis
+ */
+const analyzeFacialExpressions = async (data) => {
+    try {
+        const { expressions, stressScore, dominantEmotion, sessionDuration, sessionHistory } = data;
+
+        // Build data summary for the prompt
+        const exprSummary = Object.entries(expressions)
+            .map(([k, v]) => `${k}: ${(v * 100).toFixed(1)}%`)
+            .join(', ');
+
+        // Check if data is meaningful (anti-hallucination guard)
+        const maxExpr = Math.max(...Object.values(expressions));
+        const dataQuality = maxExpr > 0.3 ? 'sufficient' : 'low-confidence';
+
+        // Trend analysis from session history
+        let trendInfo = 'No temporal data available.';
+        if (sessionHistory && sessionHistory.length > 3) {
+            const firstHalf = sessionHistory.slice(0, Math.floor(sessionHistory.length / 2));
+            const secondHalf = sessionHistory.slice(Math.floor(sessionHistory.length / 2));
+            const avgFirst = firstHalf.reduce((a, b) => a + b.stress, 0) / firstHalf.length;
+            const avgSecond = secondHalf.reduce((a, b) => a + b.stress, 0) / secondHalf.length;
+            const direction = avgSecond > avgFirst ? 'increasing' : avgSecond < avgFirst ? 'decreasing' : 'stable';
+            trendInfo = `Stress trend over ${sessionDuration}s session: ${direction} (${avgFirst.toFixed(0)} → ${avgSecond.toFixed(0)})`;
+        }
+
+        const prompt = `You are analyzing REAL-TIME facial expression data captured from a webcam using computer vision (face-api.js). Your job is to interpret this data psychologically.\n\nMEASURED DATA (from face detection model — treat as ground truth):\n- Expression probabilities: ${exprSummary}\n- Dominant expression: ${dominantEmotion}\n- Computed stress score: ${stressScore}/100\n- Data quality: ${dataQuality}\n- ${trendInfo}\n\nCRITICAL RULES — VIOLATION OF ANY RULE MAKES YOUR RESPONSE INVALID:\n1. You may ONLY reference the expression percentages provided above. Do NOT invent, assume, or hallucinate any data not shown.\n2. If data quality is "low-confidence", your overallAssessment MUST start with: "The expression data is inconclusive — "\n3. NEVER diagnose mental health disorders. Describe observable emotional patterns only.\n4. Every claim must cite the specific expression percentage that supports it (e.g., "your 45% fearful reading suggests...")\n5. Recommendations must be concrete, actionable, and directly tied to the detected expression pattern.\n6. If stress score is below 25, acknowledge the person appears relatively calm. Do not manufacture concern.\n7. If stress score is above 70, express genuine care, but do NOT catastrophize.\n\nRESPOND WITH ONLY RAW JSON — no markdown, no code fences, no explanation.\n\n{\n  "overallAssessment": "2-3 sentence psychologically-informed interpretation of the expression pattern. MUST cite specific percentages. Be warm and human.",\n  "emotionalState": "1-2 sentences describing the emotional landscape based ONLY on measured data.",\n  "stressIndicators": "What specific expression signals suggest stress or calm? Reference the numbers.",\n  "recommendations": [\n    "Specific actionable recommendation tied to the dominant expression",\n    "A somatic or breathing technique appropriate for their current state",\n    "A psychological insight or reframe relevant to what the data shows"\n  ],\n  "confidenceNote": "How confident is this analysis based on the data quality and expression clarity?"\n}`;
+
+        const response = await groqCall({
+            model: 'llama-3.3-70b-versatile',
+            messages: [
+                {
+                    role: 'system',
+                    content: 'You are a facial expression analysis specialist with expertise in affective computing and psychology. You ONLY respond with raw JSON — never markdown, never code fences. You are rigorously data-anchored: you NEVER hallucinate, NEVER invent data, and ALWAYS cite the exact expression percentages in your analysis. You describe patterns, not diagnoses.'
+                },
+                { role: 'user', content: prompt }
+            ],
+            temperature: 0.3,
+            max_tokens: 700
+        });
+
+        const content = response.choices[0]?.message?.content || '{}';
+        const cleaned = content.replace(/```json?\s*/gi, '').replace(/```\s*/g, '').trim();
+        const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+            const parsed = JSON.parse(jsonMatch[0]);
+            if (parsed.overallAssessment && parsed.recommendations) return parsed;
+        }
+
+        // Fallback if parsing fails
+        return getDefaultFaceAnalysis(stressScore, dominantEmotion);
+    } catch (err) {
+        console.error('Facial expression analysis error:', err.message);
+        return getDefaultFaceAnalysis(data.stressScore, data.dominantEmotion);
+    }
+};
+
+const getDefaultFaceAnalysis = (stressScore = 30, dominantEmotion = 'neutral') => ({
+    overallAssessment: `Based on your facial expressions, you appear predominantly ${dominantEmotion} with a stress score of ${stressScore}/100. ${stressScore > 50 ? 'Consider taking a brief break to recenter.' : 'You seem relatively at ease.'}`,
+    emotionalState: `Your dominant expression is ${dominantEmotion}, which suggests a ${stressScore > 50 ? 'somewhat tense' : 'relatively calm'} emotional state.`,
+    stressIndicators: 'Detailed analysis unavailable — this is based on the expression detection model output.',
+    recommendations: [
+        'Try a 60-second box breathing exercise (inhale 4s, hold 4s, exhale 4s, hold 4s)',
+        'Do a quick facial muscle relaxation — consciously soften your jaw, forehead, and around your eyes',
+        'Take a moment to notice 3 things in your environment that bring you comfort'
+    ],
+    confidenceNote: 'This is a default analysis. AI-powered insights are temporarily unavailable.'
+});
+
 const getDefaultEmotionAnalysis = () => ({
     dominantEmotion: 'neutral',
     sentimentScore: 0,
@@ -219,4 +291,4 @@ const getDefaultSuggestions = (emotion) => {
     return suggestions[emotion] || ["Practice mindful breathing", "Take a short walk", "Drink water and rest"];
 };
 
-module.exports = { getTherapyResponse, analyzeEmotion, generateStressSuggestions, generateWeeklySummary };
+module.exports = { getTherapyResponse, analyzeEmotion, generateStressSuggestions, generateWeeklySummary, analyzeFacialExpressions };
