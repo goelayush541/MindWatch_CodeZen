@@ -1,0 +1,15 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+  base = "mindwatch-frontend"
+
+[[redirects]]
+  from = "/api/*"
+  to = "https://mindwatch-api.vercel.app/api/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

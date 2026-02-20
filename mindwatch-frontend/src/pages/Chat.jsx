@@ -21,7 +21,10 @@ const Chat = () => {
     const [loading, setLoading] = useState(false);
     const [emotionState, setEmotionState] = useState({ emotion: 'neutral', stressLevel: 0 });
     const [crisisData, setCrisisData] = useState(null);
+    const [voiceEnabled, setVoiceEnabled] = useState(false);
+    const [isListening, setIsListening] = useState(false);
     const messagesEndRef = useRef(null);
+    const recognitionRef = useRef(null);
 
     useEffect(() => {
         fetchSessions();
@@ -30,6 +33,24 @@ const Chat = () => {
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
+
+    useEffect(() => {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (SpeechRecognition) {
+            recognitionRef.current = new SpeechRecognition();
+            recognitionRef.current.continuous = false;
+            recognitionRef.current.interimResults = false;
+
+            recognitionRef.current.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                setInput(transcript);
+                setIsListening(false);
+            };
+
+            recognitionRef.current.onerror = () => setIsListening(false);
+            recognitionRef.current.onend = () => setIsListening(false);
+        }
+    }, []);
 
     const fetchSessions = async () => {
         try {
@@ -65,6 +86,24 @@ const Chat = () => {
         } catch { setMessages([]); }
     };
 
+    const toggleListening = () => {
+        if (isListening) {
+            recognitionRef.current?.stop();
+        } else {
+            recognitionRef.current?.start();
+            setIsListening(true);
+        }
+    };
+
+    const speak = (text) => {
+        if (!voiceEnabled || !window.speechSynthesis) return;
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = 1.0;
+        utterance.pitch = 1.0;
+        window.speechSynthesis.speak(utterance);
+    };
+
     const sendMessage = async () => {
         if (!input.trim() || loading) return;
         if (!activeSession) {
@@ -93,11 +132,14 @@ const Chat = () => {
                 timestamp: new Date()
             }]);
 
+            if (voiceEnabled) speak(aiResponse);
+
             setEmotionState({
                 emotion: emotionAnalysis?.dominantEmotion || 'neutral',
                 stressLevel: stressLevel || 0,
                 insights: emotionAnalysis?.insights,
-                suggestions: emotionAnalysis?.suggestions
+                suggestions: emotionAnalysis?.suggestions,
+                thematicAnalysis: emotionAnalysis?.thematicAnalysis
             });
 
             if (crisisDetected && crisisResources) {
@@ -129,6 +171,18 @@ const Chat = () => {
                     </button>
                 </div>
 
+                <div className="voice-settings glass-card">
+                    <span className="settings-label">Voice Response</span>
+                    <label className="switch">
+                        <input
+                            type="checkbox"
+                            checked={voiceEnabled}
+                            onChange={(e) => setVoiceEnabled(e.target.checked)}
+                        />
+                        <span className="slider round"></span>
+                    </label>
+                </div>
+
                 <div className="chat-session-list">
                     {sessions.length === 0 && (
                         <div className="empty-state" style={{ padding: '30px 10px' }}>
@@ -156,12 +210,20 @@ const Chat = () => {
 
                 {/* Emotion state panel */}
                 {activeSession && (
-                    <div className="emotion-panel">
+                    <div className="emotion-panel scrollbar-hide">
                         <div className="emotion-panel-title">Current State</div>
                         <div className="emotion-indicator" style={{ color: EMOTION_COLORS[emotionState.emotion] || '#94a3b8' }}>
                             <div className="emotion-dot" style={{ background: EMOTION_COLORS[emotionState.emotion] || '#94a3b8' }} />
                             {emotionState.emotion}
                         </div>
+
+                        {emotionState.thematicAnalysis && (
+                            <div className="theme-box glass-card">
+                                <div className="theme-label">Detected Pattern</div>
+                                <p className="theme-content">{emotionState.thematicAnalysis}</p>
+                            </div>
+                        )}
+
                         <div className="stress-meter">
                             <div className="stress-meter-label">
                                 <span>Stress</span>
@@ -174,11 +236,21 @@ const Chat = () => {
                                 }} />
                             </div>
                         </div>
+
+                        {emotionState.insights && (
+                            <div className="ai-reflection-box">
+                                <p className="ai-reflection-text">{emotionState.insights}</p>
+                            </div>
+                        )}
+
                         {emotionState.suggestions?.length > 0 && (
                             <div className="ai-suggestions">
-                                <div className="suggestions-title">💡 AI Tips</div>
-                                {emotionState.suggestions.slice(0, 2).map((s, i) => (
-                                    <div key={i} className="suggestion-item">{s}</div>
+                                <div className="suggestions-title">💡 Therapeutic Exercises</div>
+                                {emotionState.suggestions.map((s, i) => (
+                                    <div key={i} className="suggestion-item">
+                                        <div className="suggestion-check">✓</div>
+                                        <span>{s}</span>
+                                    </div>
                                 ))}
                             </div>
                         )}
@@ -258,6 +330,13 @@ const Chat = () => {
                                 rows={1}
                                 disabled={loading}
                             />
+                            <button
+                                className={`btn btn-secondary chat-mic-btn ${isListening ? 'active' : ''}`}
+                                onClick={toggleListening}
+                                title="Voice Input"
+                            >
+                                <span className="mic-icon">🎤</span>
+                            </button>
                             <button
                                 className="btn btn-primary chat-send-btn"
                                 onClick={sendMessage}

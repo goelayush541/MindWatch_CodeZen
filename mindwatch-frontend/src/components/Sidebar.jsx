@@ -15,7 +15,7 @@ const navItems = [
     { path: '/journal', icon: RiBookOpenLine, label: 'Journal' },
     { path: '/mindfulness', icon: RiLeafLine, label: 'Mindfulness' },
     { path: '/history', icon: RiHistoryLine, label: 'History' },
-    { path: '/voice-therapy', icon: RiMicLine, label: 'Voice Therapy' },
+    // { path: '/voice-therapy', icon: RiMicLine, label: 'Voice Therapy' },
 ];
 
 const Sidebar = () => {

@@ -209,19 +209,43 @@ const MoodTracker = () => {
                     {aiResult && (
                         <div className="ai-result glass-card animate-fadeInUp">
                             <div className="ai-result-header">
-                                <span className="ai-result-title">🤖 AI Analysis</span>
-                                <span className="badge badge-violet">{aiResult.emotion}</span>
+                                <span className="ai-result-title">🤖 AI Wellness Analysis</span>
+                                <span className="badge-emotion" style={{ background: EMOTIONS.find(e => e.value === aiResult.emotion)?.color + '30', color: EMOTIONS.find(e => e.value === aiResult.emotion)?.color }}>
+                                    {aiResult.emotion}
+                                </span>
                             </div>
-                            {aiResult.aiAnalysis && <p className="ai-result-insights">{aiResult.aiAnalysis}</p>}
-                            {aiResult.aiSuggestions?.length > 0 && (
-                                <div className="ai-suggestions-list">
-                                    <div className="suggestions-title">💡 Personalized Suggestions</div>
-                                    {aiResult.aiSuggestions.map((s, i) => (
-                                        <div key={i} className="ai-suggestion-item">
-                                            <div className="suggestion-num">{i + 1}</div>
-                                            <span>{s}</span>
+
+                            {aiResult.aiAnalysis && (
+                                <div className="ai-insights-box">
+                                    <p className="ai-result-insights">{aiResult.aiAnalysis}</p>
+                                </div>
+                            )}
+
+                            {aiResult.aiSuggestions && typeof aiResult.aiSuggestions === 'object' && (
+                                <div className="ai-categorized-suggestions">
+                                    {Object.entries(aiResult.aiSuggestions).map(([category, tips]) => {
+                                        if (category === 'overallAdvice' || !Array.isArray(tips)) return null;
+                                        return (
+                                            <div key={category} className="suggestion-category-group">
+                                                <div className="category-header">
+                                                    <span className={`category-tag tag-${category}`}>{category}</span>
+                                                </div>
+                                                <div className="category-tips">
+                                                    {tips.map((tip, idx) => (
+                                                        <div key={idx} className="category-tip-item">
+                                                            <RiCheckLine size={14} className="tip-check" />
+                                                            <span>{tip}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                    {aiResult.aiSuggestions.overallAdvice && (
+                                        <div className="overall-advice-box">
+                                            <p>{aiResult.aiSuggestions.overallAdvice}</p>
                                         </div>
-                                    ))}
+                                    )}
                                 </div>
                             )}
                         </div>

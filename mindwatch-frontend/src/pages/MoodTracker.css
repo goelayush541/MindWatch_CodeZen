@@ -108,6 +108,7 @@
 .mood-slider {
     flex: 1;
     -webkit-appearance: none;
+    appearance: none;
     height: 5px;
     background: rgba(255, 255, 255, 0.1);
     border-radius: 99px;
@@ -178,60 +179,117 @@
 /* AI Result */
 .ai-result {
     padding: 24px;
+    height: fit-content;
 }
 
 .ai-result-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 14px;
+    margin-bottom: 20px;
 }
 
 .ai-result-title {
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 700;
     color: #f0f4ff;
+    letter-spacing: -0.01em;
+}
+
+.badge-emotion {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.ai-insights-box {
+    background: rgba(139, 92, 246, 0.05);
+    border-left: 3px solid #8b5cf6;
+    padding: 12px 16px;
+    border-radius: 0 12px 12px 0;
+    margin-bottom: 24px;
 }
 
 .ai-result-insights {
-    font-size: 14px;
-    color: #94a3b8;
-    line-height: 1.7;
-    margin-bottom: 16px;
+    font-size: 13.5px;
+    color: #cbd5e1;
+    line-height: 1.6;
+    margin: 0;
 }
 
-.ai-suggestions-list {
+.ai-categorized-suggestions {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.suggestion-category-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.category-tag {
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+
+.tag-immediate {
+    background: rgba(239, 68, 68, 0.15);
+    color: #fca5a5;
+}
+
+.tag-mindfulness {
+    background: rgba(16, 185, 129, 0.15);
+    color: #6ee7b7;
+}
+
+.tag-lifestyle {
+    background: rgba(6, 182, 212, 0.15);
+    color: #67e8f9;
+}
+
+.tag-mental {
+    background: rgba(139, 92, 246, 0.15);
+    color: #c4b5fd;
+}
+
+.category-tips {
     display: flex;
     flex-direction: column;
     gap: 8px;
 }
 
-.suggestions-title {
-    font-size: 12px;
-    color: #6b7280;
-    font-weight: 600;
-    margin-bottom: 6px;
-}
-
-.ai-suggestion-item {
+.category-tip-item {
     display: flex;
     align-items: flex-start;
     gap: 10px;
     font-size: 13px;
-    color: #cbd5e1;
+    color: #94a3b8;
+    line-height: 1.4;
 }
 
-.suggestion-num {
-    min-width: 22px;
-    height: 22px;
-    background: rgba(139, 92, 246, 0.2);
-    color: #a78bfa;
-    border-radius: 6px;
-    font-size: 11px;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+.tip-check {
+    color: #10b981;
+    margin-top: 2px;
+    flex-shrink: 0;
+}
+
+.overall-advice-box {
+    margin-top: 10px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    font-size: 13px;
+    font-style: italic;
+    color: #64748b;
+    text-align: center;
 }
 
 /* History */

@@ -2,19 +2,22 @@ const Groq = require('groq-sdk');
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
-const SYSTEM_PROMPT = `You are MindWatch AI, a Master-level clinical therapist. Your goal is to provide deeply empathetic, socratic, and evidence-based support.
+const SYSTEM_PROMPT = `You are MindWatch AI, a Distinguished Clinical Psychologist and Neuro-Therapist. Your goal is to provide deeply empathetic, socratic, and evidence-based support using advanced psychological frameworks.
 
 Core Principles of Your Therapeutic Voice:
-1. **The Socratic Method**: Instead of just giving advice, ask gentle, probing questions that help the user discover their own insights (e.g., "I notice a shift in your tone when you mention work; what feelings come up when you think about that?").
-2. **Clinical Frameworks**: Use Cognitive Behavioral Therapy (CBT) to challenge distortions, Dialectical Behavior Therapy (DBT) for distress tolerance, and Acceptance and Commitment Therapy (ACT) for psychological flexibility.
-3. **Internal Family Systems (IFS)**: Acknowledge "parts" of the user (e.g., "It sounds like a part of you is very protective of your time, while another part feels guilty").
-4. **Mirroring and Reflection**: Use active listening to reflect back what you hear, validating their experience before offering any tools.
-5. **Logic + Warmth**: Always explain the "why" (the neuroscience) behind a technique, but deliver it with profound empathy.
+1. **The Socratic & Deep Probing**: Don't just reflect; hypothesize. Ask pointed, gentle questions that bridge the gap between surface emotion and root cause (e.g., "I'm hearing a lot of 'shoulds' in how you describe your rest; does a part of you feel that stillness is unsafe?").
+2. **Clinical Integration**: 
+   - **Polyvagal Theory**: Address the nervous system state (fight/flight/freeze/fawn).
+   - **Internal Family Systems (IFS)**: Identify "protectors" and "exiles" in the user's narrative.
+   - **ACT & DBT**: Focus on radical acceptance, values-based action, and distress tolerance.
+   - **Somatic Experiencing**: Encourage awareness of bodily sensations as messengers.
+3. **Neuroscience Bridge**: Explain the 'why' behind feelings (e.g., "That tightness in your chest is your amygdala signaling a perceived threat; let's signal safety back to it").
+4. **Radical Validation & Warmth**: Validate the *logic* of their pain before moving to tools.
 
 Guidelines:
-- **Concise & Flowing**: Max 60 words for voice read-aloud. No lists.
-- **Crisis**: Refer to 988 immediately if self-harm is detected.
-- Never replace professional medical care.`;
+- **Concise Read-Aloud**: Max 65 words for voice synthesis. Flowing, natural prose. No bullet points in chat.
+- **Narrative Discovery**: Help the user connect dots between their history and current triggers.
+- **Crisis**: Refer to 988 immediately if self-harm or immediate danger is detected.`;
 
 /**
  * Helper to call Groq with automatic fallback to a smaller model on rate limits
@@ -74,26 +77,34 @@ const getTherapyResponse = async (messages, userMessage) => {
  */
 const analyzeEmotion = async (text, history = []) => {
     try {
-        const chatContext = history.slice(-5).map(m => `${m.role === 'user' ? 'User' : 'AI'}: ${m.content}`).join('\n');
-        const prompt = `Perform a high-precision deep emotional analysis on the latest spoken text, considering the conversation context provided.
+        const chatContext = history.slice(-6).map(m => `${m.role === 'user' ? 'User' : 'AI'}: ${m.content}`).join('\n');
+        const prompt = `Perform a high-precision neuro-psychological analysis on the latest interaction, leveraging the provided context.
 
 Context (recent exchanges):
 ${chatContext}
 
 Latest Spoken Text: "${text}"
 
-Goal: Detect deep-seated emotions and underlying psychological states using clinical observation.
+Deliverable Goals:
+1. **Thematic Mapping**: Identify recurring psychological themes (e.g., abandonment, perfectionism, hyper-vigilance).
+2. **Nervous System State**: Hypothesize if the user is in Ventral Vagal (safety), Sympathetic (anxiety/anger), or Dorsal Vagal (shutdown).
+3. **Root Hypothesis**: Suggest a potential "Why" behind the current emotion based on the narrative.
 
 Return exactly this JSON structure (no markdown):
 {
-  "dominantEmotion": "one of: happy|sad|anxious|calm|angry|excited|stressed|neutral|overwhelmed|hopeful|frustrated|fearful|relief",
+  "dominantEmotion": "one of: happy|sad|anxious|calm|angry|excited|stressed|neutral|overwhelmed|hopeful|frustrated|fearful|relief|shame|grief",
   "intensity": <number 0-100>,
   "sentimentScore": <number from -1.0 to 1.0>,
   "stressLevel": <number from 0 to 10>,
-  "emotions": ["detected", "nuances"],
-  "insights": "A therapist-grade reflection or socratic question that invites the user to go deeper.",
-  "suggestions": ["3 therapeutic 'homework' or reflective exercises to regulate this specific state"],
-  "growthProgress": "Describe the movement (e.g., 'From reactivity to curiosity')",
+  "emotions": ["nuanced", "sub-emotions"],
+  "insights": "A profound therapist-grade reflection that connects current feelings to a broader pattern or socratic bridge. Avoid surface-level empathy.",
+  "suggestions": [
+    "Neuro-somatic exercise (e.g., Vagus nerve stimulation tip)",
+    "Cognitive reframe or Socratic journal prompt",
+    "Compassionate values-based action"
+  ],
+  "thematicAnalysis": "1-sentence summary of the underlying psychological theme detected.",
+  "growthProgress": "Movement description (e.g., 'From self-judgment toward curiosity')",
   "crisisSignals": <true or false>
 }  `;
 
@@ -103,7 +114,7 @@ Return exactly this JSON structure (no markdown):
                 { role: 'system', content: 'You are an expert clinical psychologist and emotion analyst. You provide evidence-based, logical, and structured insights.' },
                 { role: 'user', content: prompt }
             ],
-            temperature: 0.2,
+            temperature: 0.4,
             max_tokens: 600
         });
 
@@ -126,36 +137,38 @@ Return exactly this JSON structure (no markdown):
  */
 const generateStressSuggestions = async (context) => {
     try {
-        const prompt = `Based on this mental health context, provide a comprehensive set of evidence-based stress reduction strategies using CBT, DBT, and Somatic frameworks.
+        const prompt = `Based on this mental health context, provide a comprehensive set of evidence-based wellness strategies using CBT, DBT, ACT, and Polyvagal frameworks. 
+        
+        Ensure the advice is DYNAMIC, BOLD, and highly specific. Each tip must include a "Why this works" (Neuro-Logic).
 
 Current context:
 - Primary Emotion: ${context.emotion || 'neutral'}
-- Stress Level: ${context.stressLevel || 5}/10
-- Recent Triggers: ${context.triggers?.join(', ') || 'none specified'}
-- Personal Notes: ${context.notes || 'none'}
+- Stress/Score: ${context.stressLevel || context.score || 5}/10
+- Triggers: ${context.triggers?.join(', ') || 'none specified'}
+- User Notes: "${context.notes || 'No notes provided'}"
 
-Provide exactly 2 high-accuracy suggestions for each category:
-1. "immediate" (Somatic/Grounding): Physical actions to stabilize the nervous system now.
-2. "mindfulness" (DBT-based): Skills for distress tolerance or emotional regulation.
-3. "lifestyle" (Routine): Evidence-based habits to build long-term resilience.
-4. "mental" (CBT-based): Logic to challenge cognitive distortions and reframe perspectives.
+Provide 2 high-impact suggestions for each category:
+1. "immediate" (Neuro-Somatic): Biological hacks to reset the nervous system.
+2. "mindfulness" (Cognitive/ACT): Shifts in perception and presence.
+3. "lifestyle" (Building Resilience): Long-term system support.
+4. "mental" (Root Work): Challenging the origin of the distress.
 
 Return exactly this JSON structure (no markdown):
 {
-  "immediate": ["Reflective somatic exercise", "Sensory grounding task"],
-  "mindfulness": ["Socratic mindfulness prompt", "Distress tolerance tool"],
-  "lifestyle": ["Therapeutic routine adjustment", "Boundaries-focused shift"],
-  "mental": ["CBT thought-challenging exercise", "ACT-based acceptance prompt"],
-  "overallAdvice": "A warm therapeutic interpretation of their path forward"
+  "immediate": ["Bio-hack with logic: 'Try [X] because it stimulates [Y]'", "Somatic task: '[X] signals safety to your [Y]'"],
+  "mindfulness": ["Creative ACT prompt", "DBT Distress Tolerance skill"],
+  "lifestyle": ["Habit-shift with reasoning", "Environment optimization"],
+  "mental": ["CBT reframe against [Trigger]", "Socratic hypothesis for [Emotion]"],
+  "overallAdvice": "A deeply empathetic psychological summary that identifies the core theme of the user's current state and offers a vision of growth."
 } `;
 
         const response = await groqCall({
             model: 'llama-3.3-70b-versatile',
             messages: [
-                { role: 'system', content: 'You are a clinical wellness strategist. You provide evidence-based, logical, and psychologically sound stress management advice.' },
+                { role: 'system', content: 'You are a master clinical wellness strategist. You provide evidence-based, deeply insightful, and psychologically sound stress management advice that feels personalized and warm, never robotic.' },
                 { role: 'user', content: prompt }
             ],
-            temperature: 0.2,
+            temperature: 0.5,
             max_tokens: 800
         });
 
@@ -172,11 +185,11 @@ Return exactly this JSON structure (no markdown):
 };
 
 const getDefaultCategorizedSuggestions = () => ({
-    immediate: ["Splash cold water on your face", "Take a short brisk walk"],
-    mindfulness: ["Practice 4-7-8 breathing", "Do a 5-minute body scan"],
-    lifestyle: ["Reduce screen time for 1 hour", "Prioritize tonight's sleep"],
-    mental: ["Focus on what's within your control", "Practice positive self-affirmation"],
-    overallAdvice: "Be kind to yourself today. Small steps lead to big changes."
+    immediate: ["Try the 5-4-3-2-1 grounding technique because it resets your sensory priority", "Splash ice-cold water on your face to stimulate the mammalian dive reflex"],
+    mindfulness: ["Do a 3-minute self-compassion meditation to quiet the inner critic", "Observe your thoughts as passing clouds to practice cognitive defusion"],
+    lifestyle: ["Limit social media for the next 2 hours to reduce involuntary dopamine spikes", "Go for a mindful 10-minute walk to release kinetic energy"],
+    mental: ["Question if this thought is a fact or just a feeling-based perception", "Identify one small win you had today to counter negativity bias"],
+    overallAdvice: "You're navigating a human experience with courage. Take it one breath at a time, honoring your pace."
 });
 
 /**
@@ -215,12 +228,12 @@ const getDefaultEmotionAnalysis = () => ({
     sentimentScore: 0,
     stressLevel: 3,
     emotions: ['neutral'],
-    themes: [],
-    insights: "Your message reflects a neutral emotional state. Take a moment to check in with yourself.",
+    thematicAnalysis: "General presence and neutral observation.",
+    insights: "Your message reflects a neutral emotional state. Take a moment to check in with your bodily sensations—is there any tension you haven't noticed?",
     suggestions: [
-        "Take 5 deep breaths to center yourself",
-        "Write down 3 things you're grateful for today",
-        "Take a 10-minute walk outside"
+        "Take 5 deep breaths, focusing on the sensation of air moving through your nose",
+        "Label 3 things you can see in your environment right now",
+        "Gently stretch your neck and shoulders to release latent tension"
     ],
     crisisSignals: false
 });
