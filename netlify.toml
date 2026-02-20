@@ -5,7 +5,7 @@
 
 [[redirects]]
   from = "/api/*"
-  to = "https://mindwatch-api.vercel.app/api/:splat"
+  to = "https://mind-watch-code-zen-1xd1.vercel.app/api/:splat"
   status = 200
   force = true
 
