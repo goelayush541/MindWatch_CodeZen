@@ -33,6 +33,21 @@ app.use('/api/', limiter);
 app.use(express.json());
 app.use(morgan('dev'));
 
+// Health route (at the top for easy debugging)
+app.get('/health', (req, res) => {
+    res.json({
+        success: true,
+        message: 'MindWatch API is accessible',
+        database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+        environment: {
+            hasJwtSecret: !!process.env.JWT_SECRET,
+            hasMongoUri: !!process.env.MONGODB_URI,
+            hasGroqKey: !!process.env.GROQ_API_KEY,
+            nodeEnv: process.env.NODE_ENV
+        }
+    });
+});
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/chat', chatRoutes);
@@ -41,20 +56,6 @@ app.use('/api/journal', journalRoutes);
 app.use('/api/mindfulness', mindfulnessRoutes);
 app.use('/api/analysis', analysisRoutes);
 
-// Health route
-app.get('/api/health', async (req, res) => {
-    res.json({
-        success: true,
-        message: 'Backend is active',
-        database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
-        env: {
-            hasJwtSecret: !!process.env.JWT_SECRET,
-            hasMongoUri: !!process.env.MONGODB_URI,
-            hasGroqKey: !!process.env.GROQ_API_KEY
-        }
-    });
-});
-
 // Root route
 app.get('/', (req, res) => {
     res.json({ message: 'MindWatch AI Backend is running!' });
@@ -62,27 +63,40 @@ app.get('/', (req, res) => {
 
 // Global error handler
 app.use((err, req, res, next) => {
-    console.error(err.stack);
+    console.error('SERVER ERROR:', err);
     res.status(500).json({
         success: false,
         message: 'Internal Server Error',
-        error: process.env.NODE_ENV === 'development' ? err.message : undefined
+        error: err.message,
+        stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
     });
 });
 
 const PORT = process.env.PORT || 5000;
 
-// Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI)
-    .then(() => {
+// Connect to MongoDB without blocking
+const connectDB = async () => {
+    try {
+        if (mongoose.connection.readyState >= 1) return;
+
+        console.log('⏳ Connecting to MongoDB...');
+        await mongoose.connect(process.env.MONGODB_URI);
         console.log('✅ MongoDB Connected');
+    } catch (err) {
+        console.error('❌ MongoDB Connection Error:', err.message);
+    }
+};
+
+// Only listen if not handled by a serverless provider (Vercel/Netlify)
+if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+    connectDB().then(() => {
         app.listen(PORT, () => {
             console.log(`🚀 Server running on port ${PORT}`);
         });
-    })
-    .catch(err => {
-        console.error('❌ MongoDB Connection Error:', err.message);
-        process.exit(1);
     });
+} else {
+    // In Vercel, we just want to ensure DB connection attempt starts
+    connectDB();
+}
 // Export app for Vercel
 module.exports = app;
