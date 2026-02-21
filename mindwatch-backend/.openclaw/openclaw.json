@@ -1,0 +1,70 @@
+{
+    "auth": {
+        "profiles": {
+            "openai:default": {
+                "provider": "openai",
+                "mode": "api_key"
+            }
+        },
+        "order": {
+            "openai": [
+                "openai:default"
+            ]
+        }
+    },
+    "agents": {
+        "defaults": {
+            "model": {
+                "primary": "openai/gpt-4-turbo"
+            },
+            "workspace": "/home/MindWatch/.openclaw/workspace",
+            "maxConcurrent": 4,
+            "subagents": {
+                "maxConcurrent": 8
+            }
+        }
+    },
+    "commands": {
+        "native": "auto",
+        "nativeSkills": "auto"
+    },
+    "gateway": {
+        "mode": "local",
+        "auth": {
+            "token": "armoriq-local-dev"
+        }
+    },
+    "plugins": {
+        "enabled": true,
+        "entries": {
+            "armoriq": {
+                "enabled": true,
+                "policyUpdateEnabled": true,
+                "policyUpdateAllowList": [],
+                "apiKey": "ak_live_77ab3e765197bede3f47106e14317809b347ca32057f18c251ce0327038d28a3",
+                "userId": "test-user-001",
+                "agentId": "openclaw-agent-001",
+                "contextId": "default",
+                "endpoints": {
+                    "iap": "https://customer-iap.armoriq.ai",
+                    "backend": "https://customer-api.armoriq.ai"
+                }
+            }
+        }
+    },
+    "messages": {
+        "ackReactionScope": "group-mentions"
+    },
+    "tools": {
+        "web": {
+            "search": {
+                "enabled": true,
+                "provider": "perplexity",
+                "maxResults": 5,
+                "perplexity": {
+                    "baseUrl": "https://openrouter.ai/api/v1"
+                }
+            }
+        }
+    }
+}
