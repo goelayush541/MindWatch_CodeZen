@@ -16,17 +16,34 @@ const faceRoutes = require('./routes/face.routes');
 
 const app = express();
 
-// Security middleware
-app.use(helmet());
-
 const allowedOrigins = [
     'http://localhost:5173',
     'https://mindwatch.netlify.app'
 ];
 
+// 1. CORS Middleware (Must be before Helmet and routes)
 app.use(cors({
-    origin: allowedOrigins,
-    credentials: true
+    origin: function (origin, callback) {
+        // allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.indexOf(origin) === -1) {
+            const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+            console.warn(`[CORS Blocked] Origin: ${origin}`);
+            return callback(new Error(msg), false);
+        }
+        return callback(null, true);
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+}));
+
+// Manual preflight handling
+app.options('*', cors());
+
+// 2. Security middleware (with cross-origin policy adjustments)
+app.use(helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
 
 // Rate limiting
