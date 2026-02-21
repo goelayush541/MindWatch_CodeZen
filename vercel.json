@@ -1,5 +1,6 @@
 {
     "version": 2,
+    "installCommand": "cd mindwatch-backend && npm install",
     "builds": [
         {
             "src": "mindwatch-backend/server.js",
@@ -10,6 +11,29 @@
         {
             "source": "/(.*)",
             "destination": "mindwatch-backend/server.js"
+        }
+    ],
+    "headers": [
+        {
+            "source": "/api/(.*)",
+            "headers": [
+                {
+                    "key": "Access-Control-Allow-Origin",
+                    "value": "https://mindwatch.netlify.app"
+                },
+                {
+                    "key": "Access-Control-Allow-Methods",
+                    "value": "GET,POST,PUT,DELETE,OPTIONS"
+                },
+                {
+                    "key": "Access-Control-Allow-Headers",
+                    "value": "Content-Type,Authorization,X-Requested-With"
+                },
+                {
+                    "key": "Access-Control-Allow-Credentials",
+                    "value": "true"
+                }
+            ]
         }
     ]
 }
