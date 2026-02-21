@@ -6,14 +6,6 @@ const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
-const authRoutes = require('./routes/auth.routes');
-const chatRoutes = require('./routes/chat.routes');
-const moodRoutes = require('./routes/mood.routes');
-const journalRoutes = require('./routes/journal.routes');
-const mindfulnessRoutes = require('./routes/mindfulness.routes');
-const analysisRoutes = require('./routes/analysis.routes');
-const faceRoutes = require('./routes/face.routes');
-
 const app = express();
 
 // 1. CORS Implementation
@@ -27,10 +19,10 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
 
 app.use(cors({
     origin: (origin, callback) => {
-        // Allow requests with no origin (like mobile apps, curl, etc.)
+        // Allow requests with no origin (like mobile apps, curl, Vercel health checks)
         if (!origin) return callback(null, true);
 
-        if (allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.includes('*')) {
+        if (allowedOrigins.indexOf(origin) !== -1) {
             callback(null, true);
         } else {
             console.error(`[CORS Blocked] ${origin}`);
@@ -42,15 +34,15 @@ app.use(cors({
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
-// 2. Security middleware (Helmet must come AFTER CORS for some cross-origin settings)
+// 2. Security middleware
 app.use(helmet({
     crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
 
 // Rate limiting
 const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100 // limit each IP to 100 requests per windowMs
+    windowMs: 15 * 60 * 1000,
+    max: 100
 });
 app.use('/api/', limiter);
 
@@ -58,7 +50,7 @@ app.use('/api/', limiter);
 app.use(express.json({ limit: '10mb' }));
 app.use(morgan('dev'));
 
-// Health route (at the top for easy debugging)
+// Health route (always works, even without DB)
 app.get('/health', (req, res) => {
     res.json({
         success: true,
@@ -68,43 +60,50 @@ app.get('/health', (req, res) => {
             hasJwtSecret: !!process.env.JWT_SECRET,
             hasMongoUri: !!process.env.MONGODB_URI,
             hasGroqKey: !!process.env.GROQ_API_KEY,
-            nodeEnv: process.env.NODE_ENV
+            nodeEnv: process.env.NODE_ENV,
+            allowedOrigins: allowedOrigins
         }
     });
 });
 
-// Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/chat', chatRoutes);
-app.use('/api/mood', moodRoutes);
-app.use('/api/journal', journalRoutes);
-app.use('/api/mindfulness', mindfulnessRoutes);
-app.use('/api/analysis', analysisRoutes);
-app.use('/api/face', faceRoutes);
-
 // Root route
 app.get('/', (req, res) => {
-    res.json({ message: 'MindWatch AI Backend is running! (Canary v2)' });
+    res.json({ message: 'MindWatch AI Backend is running! (Canary v3)' });
 });
+
+// Routes - wrapped in try-catch to prevent one broken route from crashing the whole app
+try {
+    app.use('/api/auth', require('./routes/auth.routes'));
+    app.use('/api/chat', require('./routes/chat.routes'));
+    app.use('/api/mood', require('./routes/mood.routes'));
+    app.use('/api/journal', require('./routes/journal.routes'));
+    app.use('/api/mindfulness', require('./routes/mindfulness.routes'));
+    app.use('/api/analysis', require('./routes/analysis.routes'));
+    app.use('/api/face', require('./routes/face.routes'));
+} catch (err) {
+    console.error('Failed to load one or more route files:', err.message);
+}
 
 // Global error handler
 app.use((err, req, res, next) => {
-    console.error('SERVER ERROR:', err);
+    console.error('SERVER ERROR:', err.message);
     res.status(500).json({
         success: false,
         message: 'Internal Server Error',
-        error: err.message,
-        stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+        error: err.message
     });
 });
 
 const PORT = process.env.PORT || 5000;
 
-// Connect to MongoDB without blocking
+// Connect to MongoDB
 const connectDB = async () => {
     try {
         if (mongoose.connection.readyState >= 1) return;
-
+        if (!process.env.MONGODB_URI) {
+            console.error('❌ MONGODB_URI is not set!');
+            return;
+        }
         console.log('⏳ Connecting to MongoDB...');
         await mongoose.connect(process.env.MONGODB_URI);
         console.log('✅ MongoDB Connected');
@@ -113,7 +112,7 @@ const connectDB = async () => {
     }
 };
 
-// Only listen if not handled by a serverless provider (Vercel/Netlify)
+// Only listen locally (not on Vercel)
 if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
     connectDB().then(() => {
         app.listen(PORT, () => {
@@ -121,8 +120,8 @@ if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
         });
     });
 } else {
-    // In Vercel, we just want to ensure DB connection attempt starts
     connectDB();
 }
-// Export app for Vercel
+
+// Export for Vercel
 module.exports = app;

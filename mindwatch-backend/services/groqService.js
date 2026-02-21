@@ -1,6 +1,16 @@
 const Groq = require('groq-sdk');
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+let groq = null;
+const getGroq = () => {
+    if (!groq) {
+        const apiKey = process.env.GROQ_API_KEY;
+        if (!apiKey) {
+            throw new Error('GROQ_API_KEY environment variable is not set');
+        }
+        groq = new Groq({ apiKey });
+    }
+    return groq;
+};
 
 const SYSTEM_PROMPT = `You are MindWatch AI, a Distinguished Clinical Psychologist and Neuro-Therapist. Your goal is to provide deeply empathetic, socratic, and evidence-based support using advanced psychological frameworks.
 
@@ -24,11 +34,11 @@ Guidelines:
  */
 const groqCall = async (options, fallbackModel = 'llama-3.1-8b-instant') => {
     try {
-        return await groq.chat.completions.create(options);
+        return await getGroq().chat.completions.create(options);
     } catch (err) {
         if (err.message?.includes('rate_limit_exceeded') || err.status === 429) {
             console.warn(`Rate limit hit for ${options.model}, falling back to ${fallbackModel}`);
-            return await groq.chat.completions.create({
+            return await getGroq().chat.completions.create({
                 ...options,
                 model: fallbackModel
             });
@@ -180,7 +190,7 @@ Write a 150-word supportive summary that includes:
 
 Be warm, encouraging, and specific.`;
 
-        const response = await groq.chat.completions.create({
+        const response = await getGroq().chat.completions.create({
             model: 'llama-3.1-8b-instant',
             messages: [{ role: 'user', content: prompt }],
             temperature: 0.7,
