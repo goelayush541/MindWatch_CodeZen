@@ -1,6 +1,4 @@
-const axios = require('axios'); // Note: I should check if axios is installed, if not I'll use node-fetch or similar.
-// Actually, I'll use node's native fetch if available, or just implement it with a simple wrapper.
-// Since I saw Node v22 in previous logs, I can use global fetch.
+// Uses native fetch (Node 18+)
 
 /**
  * ArmoriqService handles communication with ArmorIQ's Intent-Aware Policy (IAP) endpoint.
