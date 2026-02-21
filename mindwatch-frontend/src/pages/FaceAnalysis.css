@@ -165,8 +165,95 @@
 }
 
 .face-analyze-btn {
-    flex: 1;
+    flex: 2;
     justify-content: center;
+}
+
+.voice-toggle-btn {
+    flex: 0 0 48px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+}
+
+.face-voice-panel {
+    margin: 0 20px 16px;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    position: relative;
+}
+
+.face-voice-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 8px;
+}
+
+.face-transcript-area {
+    font-size: 13px;
+    color: #cbd5e1;
+    line-height: 1.5;
+    min-height: 40px;
+    max-height: 100px;
+    overflow-y: auto;
+}
+
+.face-interim {
+    color: #6b7280;
+    font-style: italic;
+}
+
+.face-placeholder {
+    color: #4b5563;
+    font-style: italic;
+}
+
+.face-clear-voice {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: transparent;
+    border: none;
+    color: #4b5563;
+    font-size: 10px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.face-clear-voice:hover {
+    color: #ef4444;
+}
+
+.pulse-icon {
+    color: #ef4444;
+    animation: micPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes micPulse {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+
+    50% {
+        transform: scale(1.2);
+        opacity: 0.6;
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
 }
 
 .face-session-info {
@@ -378,6 +465,38 @@
     color: #cbd5e1;
     line-height: 1.6;
     margin: 0;
+}
+
+.face-correlation-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.face-correlation-val {
+    font-family: 'Outfit', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.face-correlation-track {
+    height: 4px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 2px;
+    margin-bottom: 6px;
+    overflow: hidden;
+}
+
+.face-correlation-fill {
+    height: 100%;
+    transition: width 0.8s ease-out;
+}
+
+.face-correlation-note {
+    font-size: 11px !important;
+    color: #6b7280 !important;
+    font-style: italic;
 }
 
 .face-ai-recommendations {

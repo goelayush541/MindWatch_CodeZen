@@ -5,7 +5,8 @@ import toast from 'react-hot-toast';
 import {
     RiCameraLine, RiCameraOffLine, RiLoader4Line,
     RiEmotionHappyLine, RiEmotionSadLine, RiEmotionUnhappyLine,
-    RiAlarmWarningLine, RiBrainLine, RiShieldCheckLine
+    RiAlarmWarningLine, RiBrainLine, RiShieldCheckLine,
+    RiMicLine, RiMicOffLine
 } from 'react-icons/ri';
 import './FaceAnalysis.css';
 
@@ -25,6 +26,9 @@ const FaceAnalysis = () => {
     const [modelsLoaded, setModelsLoaded] = useState(false);
     const [cameraActive, setCameraActive] = useState(false);
     const [detecting, setDetecting] = useState(false);
+    const [voiceActive, setVoiceActive] = useState(false);
+    const [transcript, setTranscript] = useState('');
+    const [interimTranscript, setInterimTranscript] = useState('');
     const [expressions, setExpressions] = useState(null);
     const [stressScore, setStressScore] = useState(0);
     const [stressLevel, setStressLevel] = useState('Analyzing...');
@@ -38,6 +42,7 @@ const FaceAnalysis = () => {
     const videoRef = useRef(null);
     const canvasRef = useRef(null);
     const streamRef = useRef(null);
+    const recognitionRef = useRef(null);
     const detectIntervalRef = useRef(null);
     const sessionTimerRef = useRef(null);
     const expressionHistoryRef = useRef([]);
@@ -60,8 +65,36 @@ const FaceAnalysis = () => {
         };
         loadModels();
 
+        // Initialize Speech Recognition
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (SpeechRecognition) {
+            recognitionRef.current = new SpeechRecognition();
+            recognitionRef.current.continuous = true;
+            recognitionRef.current.interimResults = true;
+
+            recognitionRef.current.onresult = (event) => {
+                let interim = '';
+                let final = '';
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        final += event.results[i][0].transcript;
+                    } else {
+                        interim += event.results[i][0].transcript;
+                    }
+                }
+                setTranscript(prev => prev + final);
+                setInterimTranscript(interim);
+            };
+
+            recognitionRef.current.onerror = (event) => {
+                console.error('Speech recognition error:', event.error);
+                setVoiceActive(false);
+            };
+        }
+
         return () => {
             stopCamera();
+            stopVoice();
             clearInterval(sessionTimerRef.current);
         };
     }, []);
@@ -98,6 +131,7 @@ const FaceAnalysis = () => {
     const stopCamera = () => {
         clearInterval(detectIntervalRef.current);
         clearInterval(sessionTimerRef.current);
+        stopVoice();
         if (streamRef.current) {
             streamRef.current.getTracks().forEach(track => track.stop());
             streamRef.current = null;
@@ -111,6 +145,35 @@ const FaceAnalysis = () => {
         if (canvasRef.current) {
             const ctx = canvasRef.current.getContext('2d');
             ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+        }
+    };
+
+    const toggleVoice = () => {
+        if (voiceActive) {
+            stopVoice();
+        } else {
+            startVoice();
+        }
+    };
+
+    const startVoice = () => {
+        if (recognitionRef.current) {
+            try {
+                recognitionRef.current.start();
+                setVoiceActive(true);
+                toast.success('Voice capture active 🎙️');
+            } catch (err) {
+                console.error('Failed to start speech recognition:', err);
+            }
+        } else {
+            toast.error('Speech recognition not supported in this browser');
+        }
+    };
+
+    const stopVoice = () => {
+        if (recognitionRef.current && voiceActive) {
+            recognitionRef.current.stop();
+            setVoiceActive(false);
         }
     };
 
@@ -247,6 +310,7 @@ const FaceAnalysis = () => {
                 stressScore,
                 dominantEmotion,
                 sessionDuration,
+                voiceTranscript: transcript + interimTranscript,
                 sessionHistory: sessionHistory.slice(-10)
             });
             setAiAnalysis(res.data.data || res.data);
@@ -320,10 +384,39 @@ const FaceAnalysis = () => {
                                         disabled={analyzing}
                                         style={{ background: 'linear-gradient(135deg, #8b5cf6, #06b6d4)' }}
                                     >
-                                        {analyzing ? <><RiLoader4Line size={16} className="spin-icon" /> Analyzing...</> : <><RiBrainLine size={16} /> AI Deep Analysis</>}
+                                        {analyzing ? <><RiLoader4Line size={16} className="spin-icon" /> Analyzing...</> : <><RiBrainLine size={16} /> Analyze Face + Voice</>}
+                                    </button>
+                                )}
+                                {cameraActive && (
+                                    <button
+                                        className={`btn ${voiceActive ? 'btn-secondary' : 'btn-outline'} voice-toggle-btn`}
+                                        onClick={toggleVoice}
+                                        title={voiceActive ? "Stop Voice Capture" : "Start Voice Capture"}
+                                    >
+                                        {voiceActive ? <RiMicLine size={18} /> : <RiMicOffLine size={18} />}
                                     </button>
                                 )}
                             </div>
+
+                            {/* Voice Transcript */}
+                            {cameraActive && (voiceActive || transcript) && (
+                                <div className="face-voice-panel">
+                                    <div className="face-voice-header">
+                                        <RiMicLine size={14} className={voiceActive ? 'pulse-icon' : ''} />
+                                        <span>Spoken Thoughts</span>
+                                    </div>
+                                    <div className="face-transcript-area">
+                                        {transcript}
+                                        <span className="face-interim">{interimTranscript}</span>
+                                        {!transcript && !interimTranscript && (
+                                            <span className="face-placeholder">Start speaking to add verbal context...</span>
+                                        )}
+                                    </div>
+                                    {transcript && (
+                                        <button className="face-clear-voice" onClick={() => setTranscript('')}>Clear</button>
+                                    )}
+                                </div>
+                            )}
 
                             {/* Session Info */}
                             {cameraActive && (
@@ -415,6 +508,29 @@ const FaceAnalysis = () => {
                                     <div className="face-ai-section">
                                         <h4>Emotional State</h4>
                                         <p>{aiAnalysis.emotionalState}</p>
+                                    </div>
+                                )}
+
+                                {aiAnalysis.correlationScore !== undefined && (
+                                    <div className="face-ai-section">
+                                        <div className="face-correlation-header">
+                                            <h4>Face-Voice Congruence</h4>
+                                            <span className="face-correlation-val">{aiAnalysis.correlationScore}%</span>
+                                        </div>
+                                        <div className="face-correlation-track">
+                                            <div
+                                                className="face-correlation-fill"
+                                                style={{
+                                                    width: `${aiAnalysis.correlationScore}%`,
+                                                    background: aiAnalysis.correlationScore > 70 ? '#10b981' : aiAnalysis.correlationScore > 40 ? '#f59e0b' : '#ef4444'
+                                                }}
+                                            />
+                                        </div>
+                                        <p className="face-correlation-note">
+                                            {aiAnalysis.correlationScore > 80 ? "Your expressions align well with your words." :
+                                                aiAnalysis.correlationScore > 50 ? "Some minor emotional mismatch detected." :
+                                                    "Potential emotional masking or suppression detected."}
+                                        </p>
                                     </div>
                                 )}
 

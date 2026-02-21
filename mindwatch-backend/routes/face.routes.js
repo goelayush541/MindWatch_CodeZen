@@ -1,15 +1,15 @@
 const express = require('express');
 const router = express.Router();
-const auth = require('../middleware/auth');
+const { protect } = require('../middleware/auth');
 const { analyzeFacialExpressions } = require('../services/groqService');
 
 /**
  * POST /api/face/analyze
  * Analyze facial expression data with AI
  */
-router.post('/analyze', auth, async (req, res) => {
+router.post('/analyze', protect, async (req, res) => {
     try {
-        const { expressions, stressScore, dominantEmotion, sessionDuration, sessionHistory } = req.body;
+        const { expressions, stressScore, dominantEmotion, sessionDuration, sessionHistory, voiceTranscript } = req.body;
 
         if (!expressions || typeof expressions !== 'object') {
             return res.status(400).json({ error: 'Expression data is required' });
@@ -20,7 +20,8 @@ router.post('/analyze', auth, async (req, res) => {
             stressScore,
             dominantEmotion,
             sessionDuration,
-            sessionHistory
+            sessionHistory,
+            voiceTranscript
         });
 
         res.json({ data: analysis });

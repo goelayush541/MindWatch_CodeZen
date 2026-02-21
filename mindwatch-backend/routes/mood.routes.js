@@ -57,6 +57,30 @@ router.post('/', protect, async (req, res) => {
     }
 });
 
+// @route POST /api/mood/suggestions
+// Generate dynamic AI suggestions without saving a mood log
+router.post('/suggestions', protect, async (req, res) => {
+    try {
+        const { score, emotion, triggers, notes } = req.body;
+        if (!emotion) return res.status(400).json({ success: false, message: 'Emotion is required' });
+
+        const suggestions = await generateStressSuggestions({ score: score || 5, emotion, triggers, notes });
+        res.json({ success: true, data: suggestions });
+    } catch (err) {
+        console.error('Dynamic suggestion error:', err.message);
+        res.status(500).json({
+            success: true,
+            data: {
+                immediate: ["Take a slow 4-7-8 breath — breathe in for 4, hold for 7, exhale for 8 seconds"],
+                mindfulness: ["Try a 2-minute body scan, noticing where you hold tension"],
+                lifestyle: ["Step outside for a 5-minute walk to shift your perspective"],
+                mental: ["Write down one thought that's weighing on you and reframe it as a question"],
+                overallAdvice: "Your mood has been noted. Take a moment to be gentle with yourself."
+            }
+        });
+    }
+});
+
 // @route GET /api/mood
 router.get('/', protect, async (req, res) => {
     try {

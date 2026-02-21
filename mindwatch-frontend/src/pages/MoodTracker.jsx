@@ -3,7 +3,7 @@ import api from '../services/api';
 import toast from 'react-hot-toast';
 import { Line, Doughnut } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend, Filler, ArcElement } from 'chart.js';
-import { RiAddLine, RiCheckLine, RiDeleteBinLine, RiRefreshLine, RiLoader4Line } from 'react-icons/ri';
+import { RiAddLine, RiCheckLine, RiDeleteBinLine, RiRefreshLine, RiLoader4Line, RiSparklingLine, RiLightbulbLine } from 'react-icons/ri';
 import './MoodTracker.css';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend, Filler, ArcElement);
@@ -35,6 +35,9 @@ const MoodTracker = () => {
     const [loading, setLoading] = useState(true);
     const [fetchError, setFetchError] = useState(null);
     const [deletingId, setDeletingId] = useState(null);
+    const [dynamicSuggestions, setDynamicSuggestions] = useState(null);
+    const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+    const [suggestionEmotion, setSuggestionEmotion] = useState(null);
 
     const fetchData = useCallback(async () => {
         setLoading(true);
@@ -99,6 +102,28 @@ const MoodTracker = () => {
                 ? prev.triggers.filter(t => t !== trigger)
                 : [...prev.triggers, trigger]
         }));
+    };
+
+    // ---- Dynamic AI Suggestions ----
+    const fetchDynamicSuggestions = async () => {
+        if (!form.emotion || form.emotion === suggestionEmotion) return;
+        setLoadingSuggestions(true);
+        setDynamicSuggestions(null);
+        try {
+            const res = await api.post('/mood/suggestions', {
+                score: form.score,
+                emotion: form.emotion,
+                triggers: form.triggers,
+                notes: form.notes
+            });
+            setDynamicSuggestions(res.data.data);
+            setSuggestionEmotion(form.emotion);
+        } catch (err) {
+            console.error('Dynamic suggestion error:', err);
+            toast.error('Could not fetch suggestions');
+        } finally {
+            setLoadingSuggestions(false);
+        }
     };
 
     const selectedEmotion = EMOTIONS.find(e => e.value === form.emotion);
@@ -350,6 +375,19 @@ const MoodTracker = () => {
                             </div>
                         </div>
 
+                        {/* Dynamic Suggestions Button */}
+                        <button
+                            type="button"
+                            className="btn btn-dynamic-suggest"
+                            onClick={fetchDynamicSuggestions}
+                            disabled={loadingSuggestions || !form.emotion}
+                        >
+                            {loadingSuggestions
+                                ? <><RiLoader4Line size={16} className="spin-icon" /> Generating Insights...</>
+                                : <><RiSparklingLine size={16} /> Get AI Suggestions</>
+                            }
+                        </button>
+
                         {/* Notes */}
                         <div className="form-group">
                             <label className="form-label">Notes (optional)</label>
@@ -387,6 +425,36 @@ const MoodTracker = () => {
                             )}
 
                             {renderAiSuggestions(aiResult.aiSuggestions)}
+                        </div>
+                    )}
+
+                    {/* Dynamic Suggestions Panel */}
+                    {(dynamicSuggestions || loadingSuggestions) && (
+                        <div className="dynamic-suggestions glass-card animate-fadeInUp">
+                            <div className="dynamic-suggestions-header">
+                                <RiLightbulbLine size={18} className="dynamic-icon" />
+                                <span>AI Wellness Suggestions</span>
+                                <span className="dynamic-badge">{form.emotion}</span>
+                            </div>
+
+                            {loadingSuggestions ? (
+                                <div className="dynamic-loading">
+                                    <RiLoader4Line size={24} className="spin-icon" />
+                                    <p>Analyzing your emotional state...</p>
+                                </div>
+                            ) : (
+                                <>
+                                    {renderAiSuggestions(dynamicSuggestions)}
+                                    <button
+                                        type="button"
+                                        className="btn btn-refresh-suggestions"
+                                        onClick={() => { setSuggestionEmotion(null); fetchDynamicSuggestions(); }}
+                                        disabled={loadingSuggestions}
+                                    >
+                                        <RiRefreshLine size={14} /> Refresh Suggestions
+                                    </button>
+                                </>
+                            )}
                         </div>
                     )}
                 </div>

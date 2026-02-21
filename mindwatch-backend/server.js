@@ -31,7 +31,7 @@ const limiter = rateLimit({
 app.use('/api/', limiter);
 
 // Standard middleware
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 app.use(morgan('dev'));
 
 // Health route (at the top for easy debugging)
@@ -60,7 +60,7 @@ app.use('/api/face', faceRoutes);
 
 // Root route
 app.get('/', (req, res) => {
-    res.json({ message: 'MindWatch AI Backend is running!' });
+    res.json({ message: 'MindWatch AI Backend is running! (Canary v2)' });
 });
 
 // Global error handler
