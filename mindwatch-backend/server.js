@@ -16,35 +16,25 @@ const faceRoutes = require('./routes/face.routes');
 
 const app = express();
 
-// 1. Manual CORS Implementation (Total Control)
-app.use((req, res, next) => {
-    const origin = req.get('Origin');
-    const allowedOrigins = [
-        'http://localhost:5173',
-        'https://mindwatch.netlify.app'
-    ];
+// 1. CORS Implementation
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+    ? process.env.ALLOWED_ORIGINS.split(',')
+    : ['http://localhost:5173'];
 
-    console.log(`[CORS Request] ${req.method} from ${origin || 'no-origin'}`);
-
-    if (allowedOrigins.includes(origin)) {
-        res.setHeader('Access-Control-Allow-Origin', origin);
-        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
-        res.setHeader('Access-Control-Allow-Credentials', 'true');
-        console.log(`[CORS Granted] ${origin}`);
-    } else {
-        // For development/debugging, if no origin (like a straight API call), allow localhost
-        if (!origin) {
-            res.setHeader('Access-Control-Allow-Origin', '*');
+app.use(cors({
+    origin: function (origin, callback) {
+        // allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.indexOf(origin) === -1) {
+            var msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+            return callback(new Error(msg), false);
         }
-    }
-
-    // Handle Preflight
-    if (req.method === 'OPTIONS') {
-        return res.sendStatus(204);
-    }
-    next();
-});
+        return callback(null, true);
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+}));
 
 // 2. Security middleware (Helmet must come AFTER CORS for some cross-origin settings)
 app.use(helmet({
