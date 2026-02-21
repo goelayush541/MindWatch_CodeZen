@@ -1,0 +1,30 @@
+{
+    "domain": "mental-health",
+    "intents": [
+        {
+            "id": "crisis",
+            "description": "User is expressing self-harm, suicidal ideation, or immediate danger.",
+            "action": "prioritize_safety",
+            "fallback": "crisis_resources"
+        },
+        {
+            "id": "therapy_vent",
+            "description": "User is sharing emotional struggles, daily life stress, or seeking empathy.",
+            "action": "ai_therapy",
+            "fallback": "general_support"
+        },
+        {
+            "id": "advice_seeking",
+            "description": "User is asking for specific advice or coping mechanisms.",
+            "action": "structured_suggestions",
+            "fallback": "general_support"
+        },
+        {
+            "id": "general_inquiry",
+            "description": "User is asking about the app or general mental health topics.",
+            "action": "info_response",
+            "fallback": "general_support"
+        }
+    ],
+    "default_intent": "therapy_vent"
+}

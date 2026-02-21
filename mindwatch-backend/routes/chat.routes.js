@@ -4,19 +4,40 @@ const { protect } = require('../middleware/auth');
 const ChatSession = require('../models/ChatSession');
 const { getTherapyResponse, analyzeEmotion } = require('../services/groqService');
 const { detectCrisis, calculateStressLevel } = require('../services/crisisService');
+const intentPlanMiddleware = require('../middleware/intentPlanMiddleware');
 
 // @route POST /api/chat/message
-router.post('/message', protect, async (req, res) => {
+router.post('/message', protect, intentPlanMiddleware, async (req, res) => {
     const { message, sessionId } = req.body;
+    const { intentPlan } = req;
 
     if (!message || !message.trim()) {
         return res.status(400).json({ success: false, message: 'Message is required' });
     }
 
     try {
-        // Detect crisis signals
+        // Detect crisis signals (Armoriq check + local keywords)
         const crisisCheck = detectCrisis(message);
         const stressLevel = calculateStressLevel(message);
+        const isCrisis = intentPlan.isCrisis || crisisCheck.isCrisis;
+
+        // 1. If Crisis Intent - Prioritize Safety immediately
+        if (isCrisis) {
+            console.log('[IntentPlan] High urgency detected, prioritizing safety resources.');
+            return res.json({
+                success: true,
+                data: {
+                    sessionId: sessionId || 'crisis_intervention',
+                    userMessage: message,
+                    aiResponse: "I'm concerned about what you're sharing. Your safety is the most important thing right now. Please reach out to one of these resources specifically trained to support you.",
+                    emotionAnalysis: { dominantEmotion: 'overwhelmed', stressLevel: 10 },
+                    crisisDetected: true,
+                    crisisResources: crisisCheck.resources,
+                    stressLevel: 10,
+                    intent: intentPlan.intent
+                }
+            });
+        }
 
         // Find or create session
         let session;
@@ -40,7 +61,7 @@ router.post('/message', protect, async (req, res) => {
             timestamp: new Date()
         });
 
-        // Get AI response
+        // Get AI response (Standard therapy action)
         const aiResponse = await getTherapyResponse(session.messages, message);
 
         // Analyze emotion with context
@@ -60,7 +81,7 @@ router.post('/message', protect, async (req, res) => {
         });
 
         // Update crisis flag
-        if (crisisCheck.isCrisis) {
+        if (isCrisis) {
             session.crisisDetected = true;
         }
 
@@ -76,9 +97,10 @@ router.post('/message', protect, async (req, res) => {
                 userMessage: message,
                 aiResponse,
                 emotionAnalysis: emotionData,
-                crisisDetected: crisisCheck.isCrisis,
-                crisisResources: crisisCheck.resources,
-                stressLevel: emotionData.stressLevel || stressLevel
+                crisisDetected: isCrisis,
+                crisisResources: isCrisis ? crisisCheck.resources : null,
+                stressLevel: emotionData.stressLevel || stressLevel,
+                intent: intentPlan.intent
             }
         });
     } catch (err) {
