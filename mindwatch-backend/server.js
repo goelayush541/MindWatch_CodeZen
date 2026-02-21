@@ -19,24 +19,21 @@ const app = express();
 // 1. CORS Implementation
 const allowedOrigins = process.env.ALLOWED_ORIGINS
     ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
-    : ['http://localhost:5173'];
-
-console.log('--- CORS Configuration ---');
-console.log('Allowed Origins:', allowedOrigins);
-console.log('--------------------------');
+    : [
+        'http://localhost:5173',
+        'https://mindwatch.netlify.app',
+        'https://mind-watch-code-zen.vercel.app'
+    ];
 
 app.use(cors({
-    origin: function (origin, callback) {
-        // allow requests with no origin (like mobile apps or curl requests)
-        if (!origin) {
-            return callback(null, true);
-        }
+    origin: (origin, callback) => {
+        // Allow requests with no origin (like mobile apps, curl, etc.)
+        if (!origin) return callback(null, true);
 
         if (allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.includes('*')) {
-            console.log(`[CORS] Allowed origin: ${origin}`);
             callback(null, true);
         } else {
-            console.warn(`[CORS] Blocked origin: ${origin}`);
+            console.error(`[CORS Blocked] ${origin}`);
             callback(new Error('Not allowed by CORS'));
         }
     },

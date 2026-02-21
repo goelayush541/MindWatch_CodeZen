@@ -8,6 +8,8 @@
   to = "https://mind-watch-code-zen.vercel.app/api/:splat"
   status = 200
   force = true
+  [redirects.headers]
+    X-From = "Netlify"
 
 [[redirects]]
   from = "/*"
