@@ -112,8 +112,8 @@ const connectDB = async () => {
     }
 };
 
-// Only listen locally (not on Vercel)
-if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+// Only listen locally (not on Vercel or Netlify)
+if (process.env.NODE_ENV !== 'production' || (!process.env.VERCEL && !process.env.NETLIFY)) {
     connectDB().then(() => {
         app.listen(PORT, () => {
             console.log(`🚀 Server running on port ${PORT}`);
